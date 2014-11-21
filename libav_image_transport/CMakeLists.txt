@@ -6,7 +6,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS genmsg dynamic_reconfigure image_transport catkinized_libav)
+find_package(catkin REQUIRED COMPONENTS genmsg dynamic_reconfigure image_transport)
+
+include(ExternalProject)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -81,9 +83,29 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS image_transport catkinized_libav
+  CATKIN_DEPENDS image_transport
   DEPENDS boost
 )
+
+ExternalProject_Add(libav_trunk
+  DOWNLOAD_COMMAND ""
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk"
+  CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk/configure" --enable-shared --enable-gpl --prefix="${CATKIN_DEVEL_PREFIX}"#--enable-libx264 
+)
+
+
+#add_library(libav_wrap src/wrap_lib.cc)
+set(LIBAV_LIBRARY_DEST ${CATKIN_DEVEL_PREFIX}/lib)
+set(LIBAV_INCLUDE_DEST ${CATKIN_DEVEL_PREFIX}/include)
+
+set(LIBAV_COMPONENTS avcodec avdevice avfilter avformat avresample avutil swscale)
+
+set (LIBAV_LIBS "")
+set (LIBAV_INCLUDE_DIRS "")
+foreach (_name ${LIBAV_COMPONENTS})
+    list (APPEND LIBAV_LIBS "${LIBAV_LIBRARY_DEST}/lib${_name}.so")
+    list (APPEND LIBAV_INCLUDE_DIRS "${LIBAV_INCLUDE_DEST}/lib${_name}")
+endforeach()
 
 ###########
 ## Build ##
@@ -97,7 +119,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-#  ${LIBAV_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk
 )
 
 include_directories(SYSTEM
@@ -131,6 +153,9 @@ add_library(${PROJECT_NAME} ${SOURCE_FILES})
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(libav_image_transport_node libav_image_transport_generate_messages_cpp)
+#add_dependencies(libav_wrap libav_trunk)
+add_dependencies(${PROJECT_NAME} libav_trunk)
+#add_dependencies(${PROJECT_NAME} libav_wrap ${PROJECT_NAME}_gencpp ${PROJECT_NAME}_gencfg)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
@@ -139,9 +164,11 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp ${PROJECT_NAME}_gencfg)
 #   ${Boost_LIBRARIES}
 #   ${boost_LIBRARIES}
 # )
+#target_link_libraries(libav_wrap ${LIBAV_LIBS})
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${LIBAV_LIBS}
 )
 
 #class_loader_hide_library_symbols(${PROJECT_NAME})
@@ -193,6 +220,22 @@ install(FILES
   libav_plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+install(DIRECTORY ${LIBAV_INCLUDE_DIRS}
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+)
+
+#install(TARGETS libav_wrap
+#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#)
+
+foreach (_name ${LIBAV_COMPONENTS})
+  install(DIRECTORY ${LIBAV_LIBRARY_DEST}/.
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_LIB_DESTINATION}
+    FILES_MATCHING
+    PATTERN "*${_name}*"
+  )
+endforeach()
 
 #############
 ## Testing ##
