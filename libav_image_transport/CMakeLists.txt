@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(libav_image_transport)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/")
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -90,7 +90,8 @@ catkin_package(
 ExternalProject_Add(libav_trunk
   DOWNLOAD_COMMAND ""
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk"
-  CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk/configure" --enable-shared --enable-gpl --prefix="${CATKIN_DEVEL_PREFIX}"#--enable-libx264 
+  CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk/configure" --enable-shared --enable-gpl --prefix="${CATKIN_DEVEL_PREFIX}"#--enable-libx264
+  BUILD_COMMAND make
 )
 
 
@@ -119,7 +120,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/libav_trunk
+  ${LIBAV_INCLUDE_DEST}
 )
 
 include_directories(SYSTEM
